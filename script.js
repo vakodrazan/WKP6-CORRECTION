@@ -32,7 +32,7 @@ const foods = [
 		price: 500,
 		title: 'Mofogasy',
 		spicy: false,
-		vegetarian: false,
+		vegetarian: true,
 	},
 ];
 
@@ -44,13 +44,84 @@ const totalElem = document.querySelector('.total');
 const spicy = document.querySelector('#spicy');
 const vegetarian = document.querySelector('#vegetarian');
 
-const loadFoodList = e => {};
+// show the food element from the list
+const loadFoodList = e => {
+	let filteredFoods = [...foods];
+	if (spicy.checked) {
+		filteredFoods = filteredFoods.filter(food => food.spicy);
+	}
+	if (vegetarian.checked) {
+		filteredFoods = filteredFoods.filter(food => food.vegetarian);
+	}
 
-const addFoodToOrder = id => {};
+	const html = filteredFoods.map(food => {
+		return `
+			<li>
+				<span>
+					${food.title}
+					<img class="icon" ${food.spicy ? "" : 'hidden'} src="./assets/flame.svg" alt="Spicy ${food.title}">
+					<img class="icon" ${food.vegetarian ? "" : 'hidden'} src="./assets/leaf.svg" alt="Vegetarian ${food.title}">
+				</span>
+				<span>${food.price} Ar</span>
+				<button value="${food.id}" class="add">Add</button>
+			
+				</li>
+		`;
+	})
+	.join('');
+	foodList.innerHTML = html;
+};
 
-const handleListClick = e => {};
+// add a food element to the order
+const addFoodToOrder = id => {
+	// find the element that has the same id
+	const newOrder = foods.find(food => food.id === id);
+	orders.push(newOrder);
+	orderList.dispatchEvent(new CustomEvent('orderUpdated'))
+};
 
-const showOrderList = () => {};
+// event delegation to handle a click on food list button 
+const handleListClick = e => {
+	if (e.target.matches("button.add")) {
+		addFoodToOrder(e.target.value);
+	}
+};
+
+// show the order as we want it
+const showOrderList = () => {
+	const instances = orders.reduce((acc, order) => {
+		if (acc[order.id]) {
+			acc[order.id]++;
+		} else {
+			acc[order.id] = 1;
+		}
+		return acc;
+	}, {});
+	
+	// change this object into an array
+	const html = Object.entries(instances)
+	// loop through each properties of this array
+		.map(([foodId, numberOfFood]) => {
+			// get the full object back, with its id
+			const fullFoodObject = foods.find(food => food.id === foodId);
+			return `<li><span>${fullFoodObject.title}</span> 
+						<span>+${numberOfFood}</span> 
+						<span>$ ${fullFoodObject.price * numberOfFood} Ar</span>
+					</li>`;
+		})
+	.join('');
+	orderList.innerHTML = html;
+
+};
+
+const updateTotal = () => {
+	// calculate the full bill
+	const total = orders.reduce((totalAcc, order) => {
+		
+		return totalAcc + order.price;
+	}, 0);
+	totalElem.textContent = `${total} Ar`;
+}
 
 // ***** MODAL CODE *****
 
@@ -88,11 +159,21 @@ const handleEscape = e => {
 
 // ******* LISTENERS *******
 
+// modal listener
 orderButton.addEventListener('click', openModal);
 window.addEventListener('keydown', handleEscape);
 outerModal.addEventListener('click', handleClick);
+
+// event delegation on the food list
 foodList.addEventListener('click', handleListClick);
+// custom event for updatiing the order list
 orderList.addEventListener('orderUpdated', showOrderList);
+orderList.addEventListener('orderUpdated', updateTotal);
+
+// listener for our filter to reload the list
 spicy.addEventListener('change', loadFoodList);
 vegetarian.addEventListener('change', loadFoodList);
+
+// show the list for the first time
 window.addEventListener('DOMContentLoaded', loadFoodList);
+// loadFoodList();
